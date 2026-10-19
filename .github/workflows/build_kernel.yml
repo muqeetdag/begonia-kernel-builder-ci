@@ -85,6 +85,16 @@ jobs:
           #endif
           HDR_EOF
 
+          # Fix clang stpcpy optimization
+          cat << 'STP_EOF' >> lib/string.c
+          char *stpcpy(char *dest, const char *src) {
+              while ((*dest++ = *src++) != '\0')
+                  /* nothing */;
+              return --dest;
+          }
+          EXPORT_SYMBOL(stpcpy);
+          STP_EOF
+
       - name: Inject Built-in Driver Loader (/dev/BYNb ioctl 0x803)
         run: |
           cp driver_loader_builtin.c kernel/drivers/misc/
@@ -117,7 +127,6 @@ jobs:
       - name: Compile Real 4.14.186 Kernel
         working-directory: kernel
         run: |
-          # APPEND toolchain to PATH so host /usr/bin/ld is never shadowed by Proton old ld
           export PATH="$PATH:$CLANG_DIR/bin"
           
           make -j$(nproc --all) O=out ARCH=arm64             CC="$CLANG_DIR/bin/clang"             CLANG_TRIPLE=aarch64-linux-gnu-             CROSS_COMPILE=aarch64-linux-gnu-             CROSS_COMPILE_ARM32=arm-linux-gnueabi-             HOSTCC=gcc             HOSTLD=ld             "$DEFCONFIG"
