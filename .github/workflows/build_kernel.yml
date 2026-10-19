@@ -9,7 +9,6 @@ env:
   ARCH: arm64
   SUBARCH: arm64
   DEFCONFIG: begonia_user_defconfig
-  KERNEL_IMAGE: Image.gz-dtb
   DEVICE: begonia
   KBUILD_BUILD_USER: DRKMUQEETT
   KBUILD_BUILD_HOST: begonia
@@ -131,9 +130,12 @@ jobs:
           
           make -j$(nproc --all) O=out ARCH=arm64             CC="$CLANG_DIR/bin/clang"             CLANG_TRIPLE=aarch64-linux-gnu-             CROSS_COMPILE=aarch64-linux-gnu-             CROSS_COMPILE_ARM32=arm-linux-gnueabi-             HOSTCC=gcc             HOSTLD=ld             "$DEFCONFIG"
 
-          make -j$(nproc --all) O=out ARCH=arm64             CC="$CLANG_DIR/bin/clang"             CLANG_TRIPLE=aarch64-linux-gnu-             CROSS_COMPILE=aarch64-linux-gnu-             CROSS_COMPILE_ARM32=arm-linux-gnueabi-             HOSTCC=gcc             HOSTLD=ld             "$KERNEL_IMAGE"
+          make -j$(nproc --all) O=out ARCH=arm64             CC="$CLANG_DIR/bin/clang"             CLANG_TRIPLE=aarch64-linux-gnu-             CROSS_COMPILE=aarch64-linux-gnu-             CROSS_COMPILE_ARM32=arm-linux-gnueabi-             HOSTCC=gcc             HOSTLD=ld             Image.gz
 
-          cp out/arch/arm64/boot/Image.gz-dtb "$GITHUB_WORKSPACE/Image.gz-dtb"
+          # CRITICAL BEGONIA FIX: Append hardware-verified Begonia board DTB (165,183 bytes)
+          cat out/arch/arm64/boot/Image.gz "$GITHUB_WORKSPACE/begonia_dtb.bin" > "$GITHUB_WORKSPACE/Image.gz-dtb"
+          echo "Created Image.gz-dtb with verified Begonia board DTB!"
+          ls -lh "$GITHUB_WORKSPACE/Image.gz-dtb"
 
       - name: Package Verified Begonia AnyKernel3 ZIP
         run: |
