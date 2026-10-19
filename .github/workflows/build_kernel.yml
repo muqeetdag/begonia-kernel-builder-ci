@@ -1,0 +1,125 @@
+name: "Build Begonia 4.14.186 Driver Loader Kernel"
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  Build-Kernel:
+    name: "🚀 Build 4.14.186-driver-loader"
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: "😄 Checkout"
+        uses: actions/checkout@v4
+
+      - name: "⭐ Install dependencies"
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential bc gcc-aarch64-linux-gnu gcc-arm-linux-gnueabi libssl-dev libelf-dev flex bison zip curl git
+
+      - name: "💫 Clone Toolchain (Proton Clang 13)"
+        run: |
+          git clone --depth=1 https://github.com/kdrag0n/proton-clang.git clang
+
+      - name: "🌟 Clone Begonia 4.14.186 Kernel Source"
+        run: |
+          git clone --depth=1 https://github.com/WuXing90/begonia_kernel_dev.git -b Suzaku-bka kernel_src
+
+      - name: "💉 Inject Built-in Driver Loader (/dev/BYNb ioctl 0x803)"
+        run: |
+          cat << 'C_EOF' > kernel_src/drivers/misc/driver_loader_builtin.c
+          #include <linux/module.h>
+          #include <linux/kernel.h>
+          #include <linux/init.h>
+          #include <linux/fs.h>
+          #include <linux/cdev.h>
+          #include <linux/device.h>
+          #include <linux/uaccess.h>
+
+          #define DRIVER_NAME "BYNb"
+          #define CLASS_NAME  "uevents_records"
+          #define IOCTL_MAGIC_CMD 0x803
+
+          static dev_t dev_num;
+          static struct cdev my_cdev;
+          static struct class *my_class = NULL;
+          static struct device *my_device = NULL;
+
+          static long dev_ioctl(struct file *filep, unsigned int cmd, unsigned long arg) {
+              if (cmd == IOCTL_MAGIC_CMD) {
+                  unsigned long base_addr = 0x70000000;
+                  if (arg != 0) {
+                      if (copy_to_user((void __user *)arg, &base_addr, sizeof(base_addr))) {
+                          return -EFAULT;
+                      }
+                  }
+                  return 0x70000000;
+              }
+              return 0;
+          }
+
+          static const struct file_operations fops = {
+              .owner          = THIS_MODULE,
+              .unlocked_ioctl = dev_ioctl,
+              .compat_ioctl   = dev_ioctl,
+          };
+
+          static int __init driver_loader_builtin_init(void) {
+              alloc_chrdev_region(&dev_num, 0, 1, DRIVER_NAME);
+              cdev_init(&my_cdev, &fops);
+              cdev_add(&my_cdev, dev_num, 1);
+              my_class = class_create(THIS_MODULE, CLASS_NAME);
+              my_device = device_create(my_class, NULL, dev_num, NULL, DRIVER_NAME);
+              pr_info("[BYNb] Built-in Driver Loader active at /dev/%s
+", DRIVER_NAME);
+              return 0;
+          }
+
+          module_init(driver_loader_builtin_init);
+          MODULE_LICENSE("GPL");
+          C_EOF
+
+          echo "obj-y += driver_loader_builtin.o" >> kernel_src/drivers/misc/Makefile
+
+      - name: "⚙️ Apply FolkPatch Full Symbols Defconfig"
+        run: |
+          cat << 'DEFCONFIG_EOF' >> kernel_src/arch/arm64/configs/begonia_user_defconfig
+          CONFIG_KALLSYMS=y
+          CONFIG_KALLSYMS_ALL=y
+          CONFIG_KALLSYMS_BASE_RELATIVE=y
+          CONFIG_KPROBES=y
+          CONFIG_HAVE_KPROBES=y
+          CONFIG_OVERLAY_FS=y
+          CONFIG_OVERLAY_FS_REDIRECT_DIR=y
+          CONFIG_OVERLAY_FS_INDEX=y
+          DEFCONFIG_EOF
+
+      - name: "🎶 Build Kernel (Image.gz-dtb)"
+        run: |
+          cd kernel_src
+          export PATH="/clang/bin:/usr/local/bin:/usr/bin:/bin:/usr/local/games:/usr/games"
+          export ARCH=arm64
+          export SUBARCH=arm64
+          export CROSS_COMPILE=aarch64-linux-gnu-
+          export CROSS_COMPILE_ARM32=arm-linux-gnueabi-
+          make O=out begonia_user_defconfig
+          make -j2 O=out CC=clang Image.gz-dtb
+          cp out/arch/arm64/boot/Image.gz-dtb /Image.gz-dtb
+
+      - name: "❤️ Pack AnyKernel3.zip"
+        run: |
+          git clone --depth=1 https://github.com/osm0sis/AnyKernel3.git AnyKernel3
+          sed -i 's/do.devicecheck=1/do.devicecheck=0/' AnyKernel3/anykernel.sh
+          sed -i 's/device.name1=.*/device.name1=begonia/' AnyKernel3/anykernel.sh
+          cp Image.gz-dtb AnyKernel3/Image.gz-dtb
+          cd AnyKernel3
+          zip -r -q -9 /Begonia-4.14.186-DriverLoader-FolkPatch.zip *
+
+      - name: "💾 Upload Kernel Zip Artifact"
+        uses: actions/upload-artifact@v4
+        with:
+          name: Begonia-4.14.186-DriverLoader-FolkPatch
+          path: Begonia-4.14.186-DriverLoader-FolkPatch.zip
