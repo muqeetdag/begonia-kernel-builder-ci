@@ -52,20 +52,8 @@ jobs:
       - name: Patch SPM DRAM Golden Setting Check to prevent kernel panic
         working-directory: kernel
         run: |
-          python3 -c "
-          import re
-          path = 'drivers/misc/mediatek/base/power/spm/mt6785/mtk_spm_dram.c'
-          with open(path, 'r') as f:
-              content = f.read()
-          content = re.sub(
-              r'static int spm_dram_golden_setting_cmp\(bool en\)\s*\{[^}]+\}',
-              'static int spm_dram_golden_setting_cmp(bool en) { return 0; }',
-              content
-          )
-          with open(path, 'w') as f:
-              f.write(content)
-          print('Successfully patched spm_dram_golden_setting_cmp to return 0!')
-          "
+          sed -i '/static int spm_dram_golden_setting_cmp(bool en)/{n;s/{/{\n\treturn 0;/}' drivers/misc/mediatek/base/power/spm/mt6785/mtk_spm_dram.c
+          echo "Bypassed spm_dram_golden_setting_cmp cleanly!"
 
       - name: Fetch Proton-Clang toolchain
         run: |
