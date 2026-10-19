@@ -36,17 +36,20 @@ DEFCONFIG_EOF
 echo "=== Compiling Kernel Image.gz-dtb ==="
 cd kernel_src
 export PATH="$GITHUB_WORKSPACE/clang/bin:$PATH"
-export ARCH=arm64
-export SUBARCH=arm64
-export CROSS_COMPILE=aarch64-linux-gnu-
-export CROSS_COMPILE_ARM32=arm-linux-gnueabi-
 
-# Fix compiler flags for clang cross target
-export CC=clang
-export CLANG_TRIPLE=aarch64-linux-gnu-
+MAKE_ARGS=(
+  ARCH=arm64
+  SUBARCH=arm64
+  CC=clang
+  CLANG_TRIPLE=aarch64-linux-gnu-
+  CROSS_COMPILE=aarch64-linux-gnu-
+  CROSS_COMPILE_ARM32=arm-linux-gnueabi-
+  O=out
+)
 
-make O=out begonia_user_defconfig
-make -j$(nproc --all) O=out CC=clang CLANG_TRIPLE=aarch64-linux-gnu- Image.gz-dtb
+make "${MAKE_ARGS[@]}" begonia_user_defconfig
+make -j$(nproc --all) "${MAKE_ARGS[@]}" Image.gz-dtb
+
 cp out/arch/arm64/boot/Image.gz-dtb $GITHUB_WORKSPACE/Image.gz-dtb
 cd $GITHUB_WORKSPACE
 
