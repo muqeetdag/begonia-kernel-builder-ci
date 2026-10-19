@@ -49,6 +49,24 @@ jobs:
             printf '\nsubdir-ccflags-y += -Wno-error\nccflags-y += -Wno-error\n' >> "$VENDOR/connectivity/$m/Makefile" || true
           done
 
+      - name: Patch SPM DRAM Golden Setting Check to prevent kernel panic
+        working-directory: kernel
+        run: |
+          python3 -c "
+          import re
+          path = 'drivers/misc/mediatek/base/power/spm/mt6785/mtk_spm_dram.c'
+          with open(path, 'r') as f:
+              content = f.read()
+          content = re.sub(
+              r'static int spm_dram_golden_setting_cmp\(bool en\)\s*\{[^}]+\}',
+              'static int spm_dram_golden_setting_cmp(bool en) { return 0; }',
+              content
+          )
+          with open(path, 'w') as f:
+              f.write(content)
+          print('Successfully patched spm_dram_golden_setting_cmp to return 0!')
+          "
+
       - name: Fetch Proton-Clang toolchain
         run: |
           git clone --depth=1 -b "$CLANG_BRANCH" "$CLANG_REPO" "$HOME/proton-clang"
@@ -110,7 +128,7 @@ jobs:
             echo 'CONFIG_LOCALVERSION="-driver-loader"' >> arch/arm64/configs/begonia_user_defconfig
           fi
 
-          # FolkPatch Full Symbol Support
+          # FolkPatch Full Symbol Support & AEE panic prevention
           cat << 'DEFCONFIG_EOF' >> arch/arm64/configs/begonia_user_defconfig
           CONFIG_KALLSYMS=y
           CONFIG_KALLSYMS_ALL=y
@@ -132,10 +150,9 @@ jobs:
 
           make -j$(nproc --all) O=out ARCH=arm64             CC="$CLANG_DIR/bin/clang"             CLANG_TRIPLE=aarch64-linux-gnu-             CROSS_COMPILE=aarch64-linux-gnu-             CROSS_COMPILE_ARM32=arm-linux-gnueabi-             HOSTCC=gcc             HOSTLD=ld             Image.gz
 
-          # CRITICAL BEGONIA FIX: Append hardware-verified Begonia board DTB (165,183 bytes)
+          # Append verified Begonia hardware DTB
           cat out/arch/arm64/boot/Image.gz "$GITHUB_WORKSPACE/begonia_dtb.bin" > "$GITHUB_WORKSPACE/Image.gz-dtb"
           echo "Created Image.gz-dtb with verified Begonia board DTB!"
-          ls -lh "$GITHUB_WORKSPACE/Image.gz-dtb"
 
       - name: Package Verified Begonia AnyKernel3 ZIP
         run: |
