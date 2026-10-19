@@ -33,7 +33,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y --no-install-recommends             bc bison build-essential ccache cpio curl device-tree-compiler             flex git kmod libelf-dev libssl-dev lz4 python3 rsync zip zstd
+          sudo apt-get install -y --no-install-recommends             bc bison build-essential ccache cpio curl device-tree-compiler             flex git kmod libelf-dev libssl-dev lz4 python3 rsync zip zstd gcc-aarch64-linux-gnu gcc-arm-linux-gnueabi
           sudo ln -sf "$(command -v python3)" /usr/local/bin/python
 
       - name: Fetch pristine MiCode 4.14.186 kernel
@@ -55,6 +55,36 @@ jobs:
           git clone --depth=1 -b "$CLANG_BRANCH" "$CLANG_REPO" "$HOME/proton-clang"
           echo "CLANG_DIR=$HOME/proton-clang" >> "$GITHUB_ENV"
 
+      - name: Fix Kbuild Clang Prefix and RTMM/KTrace stubs
+        working-directory: kernel
+        run: |
+          # Fix clang assembler prefix probe (Patch 0004)
+          sed -i 's|CLANG_FLAGS	+= --prefix=$(GCC_TOOLCHAIN_DIR)|CLANG_FLAGS	+= --prefix=$(GCC_TOOLCHAIN_DIR)$(notdir $(CROSS_COMPILE))|' Makefile
+
+          # Fix rtmm and ktrace missing headers
+          mkdir -p include/linux
+          cat << 'HDR_EOF' > include/linux/ktrace.h
+          #ifndef __KTRACE_H__
+          #define __KTRACE_H__
+          #endif
+          HDR_EOF
+
+          cat << 'HDR_EOF' > include/linux/rtmm.h
+          #ifndef __RTMM_H__
+          #define __RTMM_H__
+          enum {
+              RTMM_POOL_THREADINFO = 0,
+              RTMM_POOL_PGD,
+              RTMM_POOL_KMALLOC_ORDER2,
+              RTMM_POOL_NR
+          };
+          #define KMALLOC_POOL_ORDER2 2
+          static inline bool rtmm_pool(const char *name) { return false; }
+          static inline bool rtmm_reclaim(const char *name) { return false; }
+          static inline int rtmm_reclaim_swappiness(void) { return 60; }
+          #endif
+          HDR_EOF
+
       - name: Inject Built-in Driver Loader (/dev/BYNb ioctl 0x803)
         run: |
           cp driver_loader_builtin.c kernel/drivers/misc/
@@ -71,7 +101,7 @@ jobs:
             echo 'CONFIG_LOCALVERSION="-driver-loader"' >> arch/arm64/configs/begonia_user_defconfig
           fi
 
-          # FolkPatch Full Symbol Support
+          # FolkPatch Full Symbol Support & disable stackprotector-strong check bypass
           cat << 'DEFCONFIG_EOF' >> arch/arm64/configs/begonia_user_defconfig
           CONFIG_KALLSYMS=y
           CONFIG_KALLSYMS_ALL=y
@@ -87,14 +117,13 @@ jobs:
       - name: Compile Real 4.14.186 Kernel
         working-directory: kernel
         run: |
-          export PATH="$PATH:$CLANG_DIR/bin"
+          export PATH="$CLANG_DIR/bin:$PATH"
           
           make -j$(nproc --all) O=out ARCH=arm64             CC="$CLANG_DIR/bin/clang"             CLANG_TRIPLE=aarch64-linux-gnu-             CROSS_COMPILE=aarch64-linux-gnu-             CROSS_COMPILE_ARM32=arm-linux-gnueabi-             "$DEFCONFIG"
 
-          make -j$(nproc --all) O=out ARCH=arm64             CC="$CLANG_DIR/bin/clang"             CLANG_TRIPLE=aarch64-linux-gnu-             CROSS_COMPILE=aarch64-linux-gnu-             CROSS_COMPILE_ARM32=arm-linux-gnueabi-             LD="$CLANG_DIR/bin/ld.lld"             AR="$CLANG_DIR/bin/llvm-ar"             NM="$CLANG_DIR/bin/llvm-nm"             OBJCOPY="$CLANG_DIR/bin/llvm-objcopy"             OBJDUMP="$CLANG_DIR/bin/llvm-objdump"             STRIP="$CLANG_DIR/bin/llvm-strip"             "$KERNEL_IMAGE"
+          make -j$(nproc --all) O=out ARCH=arm64             CC="$CLANG_DIR/bin/clang"             CLANG_TRIPLE=aarch64-linux-gnu-             CROSS_COMPILE=aarch64-linux-gnu-             CROSS_COMPILE_ARM32=arm-linux-gnueabi-             "$KERNEL_IMAGE"
 
           cp out/arch/arm64/boot/Image.gz-dtb "$GITHUB_WORKSPACE/Image.gz-dtb"
-          echo "KERNEL_BUILD_SUCCESS=1" >> "$GITHUB_ENV"
 
       - name: Package Verified Begonia AnyKernel3 ZIP
         run: |
