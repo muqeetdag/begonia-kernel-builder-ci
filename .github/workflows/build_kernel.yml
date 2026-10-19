@@ -101,7 +101,7 @@ jobs:
             echo 'CONFIG_LOCALVERSION="-driver-loader"' >> arch/arm64/configs/begonia_user_defconfig
           fi
 
-          # FolkPatch Full Symbol Support & disable stackprotector-strong check bypass
+          # FolkPatch Full Symbol Support
           cat << 'DEFCONFIG_EOF' >> arch/arm64/configs/begonia_user_defconfig
           CONFIG_KALLSYMS=y
           CONFIG_KALLSYMS_ALL=y
@@ -117,11 +117,12 @@ jobs:
       - name: Compile Real 4.14.186 Kernel
         working-directory: kernel
         run: |
-          export PATH="$CLANG_DIR/bin:$PATH"
+          # APPEND toolchain to PATH so host /usr/bin/ld is never shadowed by Proton old ld
+          export PATH="$PATH:$CLANG_DIR/bin"
           
-          make -j$(nproc --all) O=out ARCH=arm64             CC="$CLANG_DIR/bin/clang"             CLANG_TRIPLE=aarch64-linux-gnu-             CROSS_COMPILE=aarch64-linux-gnu-             CROSS_COMPILE_ARM32=arm-linux-gnueabi-             "$DEFCONFIG"
+          make -j$(nproc --all) O=out ARCH=arm64             CC="$CLANG_DIR/bin/clang"             CLANG_TRIPLE=aarch64-linux-gnu-             CROSS_COMPILE=aarch64-linux-gnu-             CROSS_COMPILE_ARM32=arm-linux-gnueabi-             HOSTCC=gcc             HOSTLD=ld             "$DEFCONFIG"
 
-          make -j$(nproc --all) O=out ARCH=arm64             CC="$CLANG_DIR/bin/clang"             CLANG_TRIPLE=aarch64-linux-gnu-             CROSS_COMPILE=aarch64-linux-gnu-             CROSS_COMPILE_ARM32=arm-linux-gnueabi-             "$KERNEL_IMAGE"
+          make -j$(nproc --all) O=out ARCH=arm64             CC="$CLANG_DIR/bin/clang"             CLANG_TRIPLE=aarch64-linux-gnu-             CROSS_COMPILE=aarch64-linux-gnu-             CROSS_COMPILE_ARM32=arm-linux-gnueabi-             HOSTCC=gcc             HOSTLD=ld             "$KERNEL_IMAGE"
 
           cp out/arch/arm64/boot/Image.gz-dtb "$GITHUB_WORKSPACE/Image.gz-dtb"
 
