@@ -1,27 +1,119 @@
-name: Begonia Kernel Builder
+name: Build Real MiCode 4.14.186 Driver Loader Kernel
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   workflow_dispatch:
+
+env:
+  ARCH: arm64
+  SUBARCH: arm64
+  DEFCONFIG: begonia_user_defconfig
+  KERNEL_IMAGE: Image.gz-dtb
+  DEVICE: begonia
+  KBUILD_BUILD_USER: DRKMUQEETT
+  KBUILD_BUILD_HOST: begonia
+  KERNEL_REPO: https://github.com/MiCode/Xiaomi_Kernel_OpenSource
+  KERNEL_BRANCH: begonia-r-oss
+  MTK_MODULES_REPO: https://github.com/MiCode/MTK_kernel_modules
+  MTK_MODULES_BRANCH: begonia-r-oss
+  CLANG_REPO: https://github.com/kdrag0n/proton-clang
+  CLANG_BRANCH: master
 
 jobs:
   build:
-    name: Build 4.14.186 Kernel
-    runs-on: ubuntu-22.04
+    name: Build 4.14.186-driver-loader
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Run Build Script
+      - name: Install dependencies
         run: |
-          chmod +x build.sh
-          ./build.sh
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends             bc bison build-essential ccache cpio curl device-tree-compiler             flex git kmod libelf-dev libssl-dev lz4 python3 rsync zip zstd
+          sudo ln -sf "$(command -v python3)" /usr/local/bin/python
 
-      - name: Upload Kernel Flashable Zip
+      - name: Fetch pristine MiCode 4.14.186 kernel
+        run: |
+          git clone --depth=1 -b "$KERNEL_BRANCH" "$KERNEL_REPO" kernel
+
+      - name: Fetch MediaTek vendor Wi-Fi modules
+        run: |
+          VENDOR="$GITHUB_WORKSPACE/vendor/mediatek/kernel_modules"
+          mkdir -p "$(dirname "$VENDOR")"
+          git clone --depth=1 -b "$MTK_MODULES_BRANCH" "$MTK_MODULES_REPO" "$VENDOR"
+          grep -rl -- '-Werror' "$VENDOR/connectivity" | xargs -r sed -i 's/ -Werror\b//g; s/-Werror //g; s/-Werror$//g' || true
+          for m in common wlan/adaptor wlan/core/gen4m; do
+            printf '\nsubdir-ccflags-y += -Wno-error\nccflags-y += -Wno-error\n' >> "$VENDOR/connectivity/$m/Makefile" || true
+          done
+
+      - name: Fetch Proton-Clang toolchain
+        run: |
+          git clone --depth=1 -b "$CLANG_BRANCH" "$CLANG_REPO" "$HOME/proton-clang"
+          echo "CLANG_DIR=$HOME/proton-clang" >> "$GITHUB_ENV"
+
+      - name: Inject Built-in Driver Loader (/dev/BYNb ioctl 0x803)
+        run: |
+          cp driver_loader_builtin.c kernel/drivers/misc/
+          if ! grep -q "driver_loader_builtin.o" kernel/drivers/misc/Makefile; then
+            echo "obj-y += driver_loader_builtin.o" >> kernel/drivers/misc/Makefile
+          fi
+
+      - name: Configure Defconfig for FolkPatch & Driver-Loader Localversion
+        working-directory: kernel
+        run: |
+          # Set official localversion to -driver-loader so uname -r is 4.14.186-driver-loader
+          sed -i 's/CONFIG_LOCALVERSION=.*/CONFIG_LOCALVERSION="-driver-loader"/' arch/arm64/configs/begonia_user_defconfig || true
+          if ! grep -q "CONFIG_LOCALVERSION=" arch/arm64/configs/begonia_user_defconfig; then
+            echo 'CONFIG_LOCALVERSION="-driver-loader"' >> arch/arm64/configs/begonia_user_defconfig
+          fi
+
+          # FolkPatch Full Symbol Support
+          cat << 'DEFCONFIG_EOF' >> arch/arm64/configs/begonia_user_defconfig
+          CONFIG_KALLSYMS=y
+          CONFIG_KALLSYMS_ALL=y
+          CONFIG_KALLSYMS_BASE_RELATIVE=y
+          CONFIG_KPROBES=y
+          CONFIG_HAVE_KPROBES=y
+          CONFIG_OVERLAY_FS=y
+          CONFIG_OVERLAY_FS_REDIRECT_DIR=y
+          CONFIG_OVERLAY_FS_INDEX=y
+          CONFIG_DEBUG_LIST=y
+          DEFCONFIG_EOF
+
+      - name: Compile Real 4.14.186 Kernel
+        working-directory: kernel
+        run: |
+          export PATH="$PATH:$CLANG_DIR/bin"
+          
+          make -j$(nproc --all) O=out ARCH=arm64             CC="$CLANG_DIR/bin/clang"             CLANG_TRIPLE=aarch64-linux-gnu-             CROSS_COMPILE=aarch64-linux-gnu-             CROSS_COMPILE_ARM32=arm-linux-gnueabi-             "$DEFCONFIG"
+
+          make -j$(nproc --all) O=out ARCH=arm64             CC="$CLANG_DIR/bin/clang"             CLANG_TRIPLE=aarch64-linux-gnu-             CROSS_COMPILE=aarch64-linux-gnu-             CROSS_COMPILE_ARM32=arm-linux-gnueabi-             LD="$CLANG_DIR/bin/ld.lld"             AR="$CLANG_DIR/bin/llvm-ar"             NM="$CLANG_DIR/bin/llvm-nm"             OBJCOPY="$CLANG_DIR/bin/llvm-objcopy"             OBJDUMP="$CLANG_DIR/bin/llvm-objdump"             STRIP="$CLANG_DIR/bin/llvm-strip"             "$KERNEL_IMAGE"
+
+          cp out/arch/arm64/boot/Image.gz-dtb "$GITHUB_WORKSPACE/Image.gz-dtb"
+          echo "KERNEL_BUILD_SUCCESS=1" >> "$GITHUB_ENV"
+
+      - name: Package Verified Begonia AnyKernel3 ZIP
+        run: |
+          git clone --depth=1 https://github.com/jogoralt-glitch/kernel_xiaomi_begonia.git tmp_ak3
+          cp -r tmp_ak3/AnyKernel3 ./AnyKernel3
+          rm -rf ./AnyKernel3/.git ./AnyKernel3/.github ./AnyKernel3/README.md
+
+          # Replace kernel image
+          cp Image.gz-dtb ./AnyKernel3/Image.gz-dtb
+          
+          # Custom branding in anykernel.sh
+          sed -i 's/kernel.string=.*/kernel.string=Begonia 4.14.186-driver-loader by @DRKMUQEETT/' ./AnyKernel3/anykernel.sh
+
+          cd AnyKernel3
+          zip -r9 "$GITHUB_WORKSPACE/Begonia-4.14.186-driver-loader-DRKMUQEETT.zip" . -x '.*'
+          unzip -l "$GITHUB_WORKSPACE/Begonia-4.14.186-driver-loader-DRKMUQEETT.zip"
+
+      - name: Upload Flashable Kernel ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: Begonia-4.14.186-DriverLoader-FolkPatch
-          path: Begonia-4.14.186-DriverLoader-FolkPatch.zip
+          name: Begonia-4.14.186-driver-loader-DRKMUQEETT
+          path: Begonia-4.14.186-driver-loader-DRKMUQEETT.zip
