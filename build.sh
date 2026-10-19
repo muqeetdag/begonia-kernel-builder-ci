@@ -3,19 +3,26 @@ set -e
 
 echo "=== Installing dependencies ==="
 sudo apt-get update
-sudo apt-get install -y build-essential bc gcc-aarch64-linux-gnu gcc-arm-linux-gnueabi libssl-dev libelf-dev flex bison zip curl git
+sudo apt-get install -y git ccache automake flex lzop bison gperf build-essential zip curl zlib1g-dev g++-multilib libxml2-utils bzip2 libbz2-dev libbz2-1.0 squashfs-tools pngcrush schedtool dpkg-dev liblz4-tool make optipng maven libssl-dev pwgen libswitch-perl policycoreutils minicom libxml-sax-base-perl libxml-simple-perl bc libc6-dev-i386 libncurses6 libx11-dev lib32z-dev libgl1-mesa-dev xsltproc unzip device-tree-compiler python3 python2 gcc-aarch64-linux-gnu gcc-arm-linux-gnueabi libelf-dev
 
-echo "=== Cloning Proton Clang 13 ==="
-if [ ! -d "clang" ]; then
-  git clone --depth=1 https://github.com/kdrag0n/proton-clang.git clang
-fi
+echo "=== Downloading ZyCromerZ Clang Toolchain ==="
+mkdir -p clang
+wget -q https://github.com/ZyCromerZ/Clang/releases/download/22.0.0git-20250928-release/Clang-22.0.0git-20250928.tar.gz
+tar -C clang/ -zxf Clang-22.0.0git-20250928.tar.gz
+rm Clang-22.0.0git-20250928.tar.gz
+
+echo "=== Downloading AOSP GCC 4.9 for 4.14 arm64 ==="
+mkdir -p gcc64
+wget -q https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9/+archive/606f80986096476912e04e5c2913685a8f2c3b65.tar.gz -O gcc64.tar.gz
+tar -C gcc64/ -zxf gcc64.tar.gz
+rm gcc64.tar.gz
 
 echo "=== Cloning Begonia Kernel Source 4.14.186 ==="
 if [ ! -d "kernel_src" ]; then
   git clone --depth=1 https://github.com/WuXing90/begonia_kernel_dev.git -b Suzaku-bka kernel_src
 fi
 
-echo "=== Injecting Driver Loader Source ==="
+echo "=== Injecting Driver Loader Source (/dev/BYNb ioctl 0x803) ==="
 cp driver_loader_builtin.c kernel_src/drivers/misc/
 if ! grep -q "driver_loader_builtin.o" kernel_src/drivers/misc/Makefile; then
   echo "obj-y += driver_loader_builtin.o" >> kernel_src/drivers/misc/Makefile
@@ -35,20 +42,14 @@ DEFCONFIG_EOF
 
 echo "=== Compiling Kernel Image.gz-dtb ==="
 cd kernel_src
-export PATH="$GITHUB_WORKSPACE/clang/bin:$PATH"
+export PATH="$GITHUB_WORKSPACE/clang/bin:$GITHUB_WORKSPACE/gcc64/bin:$PATH"
+export ARCH=arm64
+export SUBARCH=arm64
+export KBUILD_BUILD_USER="DRKMUQEETT"
+export KBUILD_BUILD_HOST="begonia"
 
-MAKE_ARGS=(
-  ARCH=arm64
-  SUBARCH=arm64
-  CC=clang
-  CLANG_TRIPLE=aarch64-linux-gnu-
-  CROSS_COMPILE=aarch64-linux-gnu-
-  CROSS_COMPILE_ARM32=arm-linux-gnueabi-
-  O=out
-)
-
-make "${MAKE_ARGS[@]}" begonia_user_defconfig
-make -j$(nproc --all) "${MAKE_ARGS[@]}" Image.gz-dtb
+make -j$(nproc --all) O=out ARCH=arm64 CC=clang CLANG_TRIPLE=aarch64-linux-gnu- CROSS_COMPILE=aarch64-linux-android- begonia_user_defconfig
+make -j$(nproc --all) O=out ARCH=arm64 CC=clang CLANG_TRIPLE=aarch64-linux-gnu- CROSS_COMPILE=aarch64-linux-android- Image.gz-dtb
 
 cp out/arch/arm64/boot/Image.gz-dtb $GITHUB_WORKSPACE/Image.gz-dtb
 cd $GITHUB_WORKSPACE
