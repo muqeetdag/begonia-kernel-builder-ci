@@ -52,22 +52,10 @@ jobs:
       - name: Patch SPM DRAM Golden Setting Check to prevent kernel panic
         working-directory: kernel
         run: |
-          python3 -c "
-          import re
-          path = 'drivers/misc/mediatek/base/power/spm/mt6785/mtk_spm_dram.c'
-          with open(path, 'r') as f:
-              data = f.read()
-          # Replace the exact function cleanly adhering to C90
-          data = re.sub(
-              r'static int spm_dram_golden_setting_cmp\(bool en\)\n\{.*?return r;\n\n\}',
-              'static int spm_dram_golden_setting_cmp(bool en)\n{\n\treturn 0;\n}',
-              data,
-              flags=re.DOTALL
-          )
-          with open(path, 'w') as f:
-              f.write(data)
-          print('Patched mtk_spm_dram.c cleanly!')
-          "
+          # Change r = -EPERM to r = 0 and convert aee_kernel_warning to harmless printk
+          sed -i 's/r = -EPERM;/r = 0;/' drivers/misc/mediatek/base/power/spm/mt6785/mtk_spm_dram.c
+          sed -i 's/aee_kernel_warning("SPM Warning"/printk("[SPM Warning]"/' drivers/misc/mediatek/base/power/spm/mt6785/mtk_spm_dram.c
+          echo "SPM DRAM check neutralized without any unused variables or C90 syntax changes!"
 
       - name: Fetch Proton-Clang toolchain
         run: |
