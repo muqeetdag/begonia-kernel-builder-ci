@@ -117,8 +117,9 @@ jobs:
           # Copy clean Image.gz (compatible with Header v2 boot partition)
           cp kernel/out/arch/arm64/boot/Image.gz AnyKernel3/Image.gz
           
-          # Custom branding in anykernel.sh
+          # Custom branding in anykernel.sh & support Android 16
           sed -i 's/kernel.string=.*/kernel.string=Begonia 4.14.186-driver-loader by @DRKMUQEETT/' AnyKernel3/anykernel.sh
+          sed -i 's/supported.versions=.*/supported.versions=/' AnyKernel3/anykernel.sh
 
           cd AnyKernel3
           zip -r9 "$GITHUB_WORKSPACE/Begonia-4.14.186-driver-loader-DRKMUQEETT.zip" . -x '.*'
