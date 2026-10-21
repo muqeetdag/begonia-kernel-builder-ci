@@ -43,6 +43,11 @@ jobs:
           # Set exact kernel sublevel 186
           sed -i 's/SUBLEVEL = .*/SUBLEVEL = 186/' Makefile
           sed -i 's/EXTRAVERSION = .*/EXTRAVERSION = /' Makefile
+          
+          # Clean broken duplicate/incompatible LLVM Polly flags
+          sed -i '/polly/d' Makefile
+          sed -i '/unroll-threshold/d' Makefile
+
           head -n 5 Makefile
 
       - name: Patch SPM DRAM Golden Setting Check to prevent kernel panic
