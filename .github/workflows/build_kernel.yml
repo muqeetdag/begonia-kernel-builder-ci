@@ -57,9 +57,11 @@ jobs:
           git clone --depth=1 -b "$CLANG_BRANCH" "$CLANG_REPO" "$HOME/proton-clang"
           echo "CLANG_DIR=$HOME/proton-clang" >> "$GITHUB_ENV"
 
-      - name: Fix Clang stpcpy optimization
+      - name: Fix Clang Prefix and Assembler
         working-directory: kernel
         run: |
+          sed -i 's|CLANG_FLAGS	+= --prefix=$(GCC_TOOLCHAIN_DIR)|CLANG_FLAGS	+= --prefix=$(GCC_TOOLCHAIN_DIR)$(notdir $(CROSS_COMPILE))|' Makefile || true
+          
           cat << 'STP_EOF' >> lib/string.c
           char *stpcpy(char *dest, const char *src) {
               while ((*dest++ = *src++) != '\0')
@@ -83,6 +85,10 @@ jobs:
           if ! grep -q "CONFIG_LOCALVERSION=" arch/arm64/configs/begonia_user_defconfig; then
             echo 'CONFIG_LOCALVERSION="-driver-loader"' >> arch/arm64/configs/begonia_user_defconfig
           fi
+
+          # Disable stack protector check failure
+          sed -i 's/CONFIG_CC_STACKPROTECTOR_STRONG=y/CONFIG_CC_STACKPROTECTOR_NONE=y/' arch/arm64/configs/begonia_user_defconfig || true
+          sed -i 's/CONFIG_CC_STACKPROTECTOR_AUTO=y/# CONFIG_CC_STACKPROTECTOR_AUTO is not set/' arch/arm64/configs/begonia_user_defconfig || true
 
           cat << 'DEFCONFIG_EOF' >> arch/arm64/configs/begonia_user_defconfig
           CONFIG_KALLSYMS=y
