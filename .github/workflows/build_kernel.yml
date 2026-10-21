@@ -66,15 +66,6 @@ jobs:
         working-directory: kernel
         run: |
           sed -i 's|CLANG_FLAGS	+= --prefix=$(GCC_TOOLCHAIN_DIR)|CLANG_FLAGS	+= --prefix=$(GCC_TOOLCHAIN_DIR)$(notdir $(CROSS_COMPILE))|' Makefile || true
-          
-          cat << 'STP_EOF' >> lib/string.c
-          char *stpcpy(char *dest, const char *src) {
-              while ((*dest++ = *src++) != '\0')
-                  /* nothing */;
-              return --dest;
-          }
-          EXPORT_SYMBOL(stpcpy);
-          STP_EOF
 
       - name: Inject Built-in Driver Loader (/dev/BYNb ioctl 0x803)
         run: |
