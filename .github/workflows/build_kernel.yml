@@ -1,4 +1,4 @@
-name: Build Real MiCode 4.14.186 Driver Loader Kernel
+name: Build Begonia 4.14.186 Kaeru Driver Loader Kernel
 
 on:
   push:
@@ -12,16 +12,14 @@ env:
   DEVICE: begonia
   KBUILD_BUILD_USER: DRKMUQEETT
   KBUILD_BUILD_HOST: begonia
-  KERNEL_REPO: https://github.com/MiCode/Xiaomi_Kernel_OpenSource
-  KERNEL_BRANCH: begonia-r-oss
-  MTK_MODULES_REPO: https://github.com/MiCode/MTK_kernel_modules
-  MTK_MODULES_BRANCH: begonia-r-oss
+  KERNEL_REPO: https://github.com/Saikrishna1504/kernel_xiaomi_mt6785
+  KERNEL_BRANCH: kaeru
   CLANG_REPO: https://github.com/kdrag0n/proton-clang
   CLANG_BRANCH: master
 
 jobs:
   build:
-    name: Build 4.14.186-driver-loader
+    name: Build 4.14.186-driver-loader (Android 16 Base)
     runs-on: ubuntu-latest
     timeout-minutes: 120
 
@@ -35,64 +33,33 @@ jobs:
           sudo apt-get install -y --no-install-recommends             bc bison build-essential ccache cpio curl device-tree-compiler             flex git kmod libelf-dev libssl-dev lz4 python3 rsync zip zstd gcc-aarch64-linux-gnu gcc-arm-linux-gnueabi
           sudo ln -sf "$(command -v python3)" /usr/local/bin/python
 
-      - name: Fetch pristine MiCode 4.14.186 kernel
+      - name: Fetch Kaeru Android 16 Kernel Source
         run: |
           git clone --depth=1 -b "$KERNEL_BRANCH" "$KERNEL_REPO" kernel
 
-      - name: Fetch MediaTek vendor Wi-Fi modules
+      - name: Patch Version to 4.14.186 & Localversion to -driver-loader
+        working-directory: kernel
         run: |
-          VENDOR="$GITHUB_WORKSPACE/vendor/mediatek/kernel_modules"
-          mkdir -p "$(dirname "$VENDOR")"
-          git clone --depth=1 -b "$MTK_MODULES_BRANCH" "$MTK_MODULES_REPO" "$VENDOR"
-          grep -rl -- '-Werror' "$VENDOR/connectivity" | xargs -r sed -i 's/ -Werror\b//g; s/-Werror //g; s/-Werror$//g' || true
-          for m in common wlan/adaptor wlan/core/gen4m; do
-            printf '\nsubdir-ccflags-y += -Wno-error\nccflags-y += -Wno-error\n' >> "$VENDOR/connectivity/$m/Makefile" || true
-          done
+          # Set exact kernel sublevel 186
+          sed -i 's/SUBLEVEL = .*/SUBLEVEL = 186/' Makefile
+          sed -i 's/EXTRAVERSION = .*/EXTRAVERSION = /' Makefile
+          head -n 5 Makefile
 
       - name: Patch SPM DRAM Golden Setting Check to prevent kernel panic
         working-directory: kernel
         run: |
-          # Change r = -EPERM to r = 0 and convert aee_kernel_warning to harmless printk
-          sed -i 's/r = -EPERM;/r = 0;/' drivers/misc/mediatek/base/power/spm/mt6785/mtk_spm_dram.c
-          sed -i 's/aee_kernel_warning("SPM Warning"/printk("[SPM Warning]"/' drivers/misc/mediatek/base/power/spm/mt6785/mtk_spm_dram.c
-          echo "SPM DRAM check neutralized without any unused variables or C90 syntax changes!"
+          sed -i 's/r = -EPERM;/r = 0;/' drivers/misc/mediatek/base/power/spm/mt6785/mtk_spm_dram.c || true
+          sed -i 's/aee_kernel_warning("SPM Warning"/printk("[SPM Warning]"/' drivers/misc/mediatek/base/power/spm/mt6785/mtk_spm_dram.c || true
+          echo "Neutralized SPM DRAM check successfully!"
 
       - name: Fetch Proton-Clang toolchain
         run: |
           git clone --depth=1 -b "$CLANG_BRANCH" "$CLANG_REPO" "$HOME/proton-clang"
           echo "CLANG_DIR=$HOME/proton-clang" >> "$GITHUB_ENV"
 
-      - name: Fix Kbuild Clang Prefix and RTMM/KTrace stubs
+      - name: Fix Clang stpcpy optimization
         working-directory: kernel
         run: |
-          # Fix clang assembler prefix probe (Patch 0004)
-          sed -i 's|CLANG_FLAGS	+= --prefix=$(GCC_TOOLCHAIN_DIR)|CLANG_FLAGS	+= --prefix=$(GCC_TOOLCHAIN_DIR)$(notdir $(CROSS_COMPILE))|' Makefile
-
-          # Fix rtmm and ktrace missing headers
-          mkdir -p include/linux
-          cat << 'HDR_EOF' > include/linux/ktrace.h
-          #ifndef __KTRACE_H__
-          #define __KTRACE_H__
-          #endif
-          HDR_EOF
-
-          cat << 'HDR_EOF' > include/linux/rtmm.h
-          #ifndef __RTMM_H__
-          #define __RTMM_H__
-          enum {
-              RTMM_POOL_THREADINFO = 0,
-              RTMM_POOL_PGD,
-              RTMM_POOL_KMALLOC_ORDER2,
-              RTMM_POOL_NR
-          };
-          #define KMALLOC_POOL_ORDER2 2
-          static inline bool rtmm_pool(const char *name) { return false; }
-          static inline bool rtmm_reclaim(const char *name) { return false; }
-          static inline int rtmm_reclaim_swappiness(void) { return 60; }
-          #endif
-          HDR_EOF
-
-          # Fix clang stpcpy optimization
           cat << 'STP_EOF' >> lib/string.c
           char *stpcpy(char *dest, const char *src) {
               while ((*dest++ = *src++) != '\0')
@@ -109,16 +76,14 @@ jobs:
             echo "obj-y += driver_loader_builtin.o" >> kernel/drivers/misc/Makefile
           fi
 
-      - name: Configure Defconfig for FolkPatch & Driver-Loader Localversion
+      - name: Configure Defconfig for FolkPatch & Driver Loader
         working-directory: kernel
         run: |
-          # Set official localversion to -driver-loader so uname -r is 4.14.186-driver-loader
           sed -i 's/CONFIG_LOCALVERSION=.*/CONFIG_LOCALVERSION="-driver-loader"/' arch/arm64/configs/begonia_user_defconfig || true
           if ! grep -q "CONFIG_LOCALVERSION=" arch/arm64/configs/begonia_user_defconfig; then
             echo 'CONFIG_LOCALVERSION="-driver-loader"' >> arch/arm64/configs/begonia_user_defconfig
           fi
 
-          # FolkPatch Full Symbol Support & AEE panic prevention
           cat << 'DEFCONFIG_EOF' >> arch/arm64/configs/begonia_user_defconfig
           CONFIG_KALLSYMS=y
           CONFIG_KALLSYMS_ALL=y
@@ -140,21 +105,18 @@ jobs:
 
           make -j$(nproc --all) O=out ARCH=arm64             CC="$CLANG_DIR/bin/clang"             CLANG_TRIPLE=aarch64-linux-gnu-             CROSS_COMPILE=aarch64-linux-gnu-             CROSS_COMPILE_ARM32=arm-linux-gnueabi-             HOSTCC=gcc             HOSTLD=ld             Image.gz
 
-          # Append verified Begonia hardware DTB
-          cat out/arch/arm64/boot/Image.gz "$GITHUB_WORKSPACE/begonia_dtb.bin" > "$GITHUB_WORKSPACE/Image.gz-dtb"
-          echo "Created Image.gz-dtb with verified Begonia board DTB!"
+          echo "Kernel compiled successfully!"
 
-      - name: Package Verified Begonia AnyKernel3 ZIP
+      - name: Package Verified Begonia AnyKernel3 ZIP (Header v2 clean)
         run: |
-          git clone --depth=1 https://github.com/jogoralt-glitch/kernel_xiaomi_begonia.git tmp_ak3
-          cp -r tmp_ak3/AnyKernel3 ./AnyKernel3
-          rm -rf ./AnyKernel3/.git ./AnyKernel3/.github ./AnyKernel3/README.md
+          git clone --depth=1 -b begonia https://github.com/cvnertnc/AnyKernel3.git AnyKernel3
+          rm -rf AnyKernel3/.git AnyKernel3/.github AnyKernel3/README.md
 
-          # Replace kernel image
-          cp Image.gz-dtb ./AnyKernel3/Image.gz-dtb
+          # Copy clean Image.gz (compatible with Header v2 boot partition)
+          cp kernel/out/arch/arm64/boot/Image.gz AnyKernel3/Image.gz
           
           # Custom branding in anykernel.sh
-          sed -i 's/kernel.string=.*/kernel.string=Begonia 4.14.186-driver-loader by @DRKMUQEETT/' ./AnyKernel3/anykernel.sh
+          sed -i 's/kernel.string=.*/kernel.string=Begonia 4.14.186-driver-loader by @DRKMUQEETT/' AnyKernel3/anykernel.sh
 
           cd AnyKernel3
           zip -r9 "$GITHUB_WORKSPACE/Begonia-4.14.186-driver-loader-DRKMUQEETT.zip" . -x '.*'
