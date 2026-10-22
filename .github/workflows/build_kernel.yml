@@ -107,17 +107,20 @@ jobs:
 
           make -j$(nproc --all) O=out ARCH=arm64             CC="$CLANG_DIR/bin/clang"             CLANG_TRIPLE=aarch64-linux-gnu-             CROSS_COMPILE=aarch64-linux-gnu-             CROSS_COMPILE_ARM32=arm-linux-gnueabi-             HOSTCC=gcc             HOSTLD=ld             Image.gz
 
-          echo "Kernel compiled successfully!"
+          # Append verified Begonia hardware DTB for TFA9874 speaker amplifier & MT6359 mic
+          cat out/arch/arm64/boot/Image.gz "$GITHUB_WORKSPACE/begonia_dtb.bin" > "$GITHUB_WORKSPACE/Image.gz-dtb"
+          echo "Appended Begonia audio hardware DTB to Image.gz-dtb!"
 
-      - name: Package Verified Begonia AnyKernel3 ZIP (Header v2 clean)
+      - name: Package Verified Begonia AnyKernel3 ZIP
         run: |
           git clone --depth=1 -b begonia https://github.com/cvnertnc/AnyKernel3.git AnyKernel3
           rm -rf AnyKernel3/.git AnyKernel3/.github AnyKernel3/README.md
 
-          # Copy clean Image.gz (compatible with Header v2 boot partition)
-          cp kernel/out/arch/arm64/boot/Image.gz AnyKernel3/Image.gz
+          # Copy Image.gz-dtb as both Image.gz-dtb and Image.gz
+          cp "$GITHUB_WORKSPACE/Image.gz-dtb" AnyKernel3/Image.gz-dtb
+          cp "$GITHUB_WORKSPACE/Image.gz-dtb" AnyKernel3/Image.gz
           
-          # Custom branding in anykernel.sh & support Android 16
+          # Custom branding & support Android 16
           sed -i 's/kernel.string=.*/kernel.string=Begonia 4.14.186-driver-loader by @DRKMUQEETT/' AnyKernel3/anykernel.sh
           sed -i 's/supported.versions=.*/supported.versions=/' AnyKernel3/anykernel.sh
 
