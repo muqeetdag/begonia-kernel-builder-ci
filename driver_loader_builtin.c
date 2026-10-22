@@ -34,7 +34,7 @@ static ssize_t dev_write(struct file *filep, const char __user *buffer, size_t l
 
 static long dev_ioctl(struct file *filep, unsigned int cmd, unsigned long arg) {
     if (cmd == IOCTL_MAGIC_CMD) {
-        /* Returns the magic base address 0x70000000 expected by AngryMod Driver Loader */
+        /* Returns magic base address 0x70000000 expected by AngryMod Driver Loader */
         unsigned long base_addr = 0x70000000;
         if (arg != 0) {
             if (copy_to_user((void __user *)arg, &base_addr, sizeof(base_addr))) {
@@ -55,6 +55,12 @@ static const struct file_operations fops = {
     .unlocked_ioctl = dev_ioctl,
     .compat_ioctl   = dev_ioctl,
 };
+
+static char *bynb_devnode(struct device *dev, umode_t *mode) {
+    if (mode)
+        *mode = 0666; /* rw-rw-rw- accessible by all userspace apps */
+    return NULL;
+}
 
 static int __init driver_loader_builtin_init(void) {
     int ret;
@@ -84,6 +90,8 @@ static int __init driver_loader_builtin_init(void) {
         return PTR_ERR(my_class);
     }
 
+    my_class->devnode = bynb_devnode;
+
     my_device = device_create(my_class, NULL, dev_num, NULL, DRIVER_NAME);
     if (IS_ERR(my_device)) {
         class_destroy(my_class);
@@ -93,7 +101,7 @@ static int __init driver_loader_builtin_init(void) {
         return PTR_ERR(my_device);
     }
 
-    pr_info("[BYNb] Driver device created at /dev/%s successfully! Magic IOCTL 0x803 ready\n", DRIVER_NAME);
+    pr_info("[BYNb] Driver device created at /dev/%s with mode 0666 successfully!\n", DRIVER_NAME);
     return 0;
 }
 
