@@ -1,0 +1,54 @@
+name: Experimental genuine 4.14.186 baseline
+on:
+  push:
+    branches: [experimental/begonia-186-audit]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  compile:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - name: Dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y bc bison build-essential flex libssl-dev libelf-dev gcc-aarch64-linux-gnu gcc-arm-linux-gnueabi python3 device-tree-compiler
+      - name: Fetch pinned source and compiler
+        run: |
+          git clone https://github.com/muqeetdag/begonia_kernel_dev kernel
+          git -C kernel checkout 14f22f64c93ab3e30a9f24cafc430fe54a2b6ef4
+          git clone --depth=1 https://github.com/kdrag0n/proton-clang clang
+          mkdir -p artifacts
+          git -C kernel rev-parse HEAD > artifacts/source-commit.txt
+          git -C clang rev-parse HEAD > artifacts/compiler-commit.txt
+      - name: Remove nonfunctional loader stub; configure baseline
+        run: |
+          set -euo pipefail
+          cd kernel
+          test "$(sed -n 's/^SUBLEVEL = //p' Makefile)" = 186
+          sed -i '/driver_loader_builtin\.o/d' drivers/misc/Makefile
+          rm -f drivers/misc/driver_loader_builtin.c
+          export PATH="$GITHUB_WORKSPACE/clang/bin:$PATH"
+          make O=out ARCH=arm64 CC=clang CLANG_TRIPLE=aarch64-linux-gnu- CROSS_COMPILE=aarch64-linux-gnu- CROSS_COMPILE_ARM32=arm-linux-gnueabi- begonia_user_defconfig
+          scripts/config --file out/.config --set-str LOCALVERSION '-experimental-f2fs' --disable LOCALVERSION_AUTO --disable KSU --enable KALLSYMS --enable KALLSYMS_ALL --enable MODULES --enable F2FS_FS --enable F2FS_FS_XATTR --enable F2FS_FS_POSIX_ACL --enable F2FS_FS_SECURITY --enable F2FS_FS_ENCRYPTION
+          make O=out ARCH=arm64 CC=clang CLANG_TRIPLE=aarch64-linux-gnu- CROSS_COMPILE=aarch64-linux-gnu- CROSS_COMPILE_ARM32=arm-linux-gnueabi- olddefconfig
+          grep -qx 'CONFIG_F2FS_FS=y' out/.config
+          cp out/.config ../artifacts/kernel.config
+          git diff > ../artifacts/source.patch
+          printf '%s\n' 'EXPERIMENTAL COMPILE ONLY. NOT FLASHABLE. No integrated RT driver, no KernelPatch patch applied, no hardware or C2 camera compatibility verified. Do not flash.' > ../artifacts/STATUS.txt
+      - name: Compile baseline (not a flashable release)
+        run: |
+          set -euo pipefail
+          export PATH="$GITHUB_WORKSPACE/clang/bin:$PATH"
+          make -C kernel O=out ARCH=arm64 CC=clang CLANG_TRIPLE=aarch64-linux-gnu- CROSS_COMPILE=aarch64-linux-gnu- CROSS_COMPILE_ARM32=arm-linux-gnueabi- -j"$(nproc)" Image.gz 2>&1 | tee artifacts/build.log
+          cp kernel/out/arch/arm64/boot/Image.gz artifacts/
+          cp kernel/out/Module.symvers artifacts/ || true
+          sha256sum artifacts/Image.gz > artifacts/SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: experimental-186-baseline-NOT-FLASHABLE
+          path: artifacts/
+          retention-days: 7
