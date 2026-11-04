@@ -44,7 +44,7 @@ jobs:
         run: |
           set -euo pipefail
           export PATH="$GITHUB_WORKSPACE/clang/bin:$PATH"
-          make -C kernel O=out ARCH=arm64 CC=clang CLANG_TRIPLE=aarch64-linux-gnu- CROSS_COMPILE=aarch64-linux-gnu- CROSS_COMPILE_ARM32=arm-linux-gnueabi- -j"$(nproc)" Image.gz 2>&1 | tee artifacts/build.log
+          make -C kernel O=out ARCH=arm64 CC=clang CLANG_TRIPLE=aarch64-linux-gnu- CROSS_COMPILE=aarch64-linux-gnu- CROSS_COMPILE_ARM32=arm-linux-gnueabi- KCFLAGS=-fno-builtin-sprintf -j"$(nproc)" Image.gz 2>&1 | tee artifacts/build.log
           cp kernel/out/arch/arm64/boot/Image.gz artifacts/
           cp kernel/out/Module.symvers artifacts/ || true
           sha256sum artifacts/Image.gz > artifacts/SHA256SUMS
