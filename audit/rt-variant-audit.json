@@ -1,0 +1,38 @@
+[
+  {
+    "apk": "All Driver V2_2.0_signed.apk",
+    "entry": "RT/4.14.186.sh",
+    "sha256": "ae797ee03e4105fb28192a3ac7bc0b7ba406006f397ab87da4969c146ef446a5",
+    "bytes": 169392,
+    "modinfo": [
+      "license=GPL",
+      "vermagic=4.14.186-g49c02c2de-dirty SMP preempt mod_unload modversions aarch64",
+      "name=5.10_A12",
+      "depends=",
+      "srcversion=6CAAFCFC8F6E2B942DE33FA"
+    ],
+    "versions_bytes": 0
+  },
+  {
+    "apk": "All Driver V2_2.0_signed.apk",
+    "entry": "RT/4.14.186b.sh",
+    "sha256": "8fa885ee15ae6a3327fa6c9b047c06173d0b9d72d2db96cef5d7f2a39220c711",
+    "bytes": 566460,
+    "modinfo": [],
+    "versions_bytes": null,
+    "parse_error": "error"
+  },
+  {
+    "apk": "All Driver V2_2.0_signed.apk",
+    "entry": "RT/4.14.186c.sh",
+    "sha256": "18c16d5ab78c15d5714649932011fed7c30871317776412769b0ca1070e35737",
+    "bytes": 194128,
+    "modinfo": [
+      "license=GPL",
+      "vermagic=4.14.186-perf-g9be022c0d-dirty SMP preempt mod_unload modversions aarch64",
+      "name=5.10_A12",
+      "depends="
+    ],
+    "versions_bytes": 0
+  }
+]

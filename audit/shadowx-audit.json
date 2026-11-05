@@ -1,0 +1,43 @@
+[
+  {
+    "entry": "ShadowX-RT_Driver/4.14.186.sh",
+    "elf_offset": 1610,
+    "bytes": 506128,
+    "modinfo": [
+      "license=GPL",
+      "vermagic=4.14.186-g49c02c2de-dirty SMP preempt mod_unload modversions aarch64",
+      "name=suvhwvwrtnb",
+      "depends=",
+      "srcversion=482F07DA4924E9B501AC925"
+    ],
+    "versions_bytes": 0,
+    "needed_bytes": 506128
+  },
+  {
+    "entry": "ShadowX-RT_Driver/4.14.186b.sh",
+    "elf_offset": 1610,
+    "bytes": 504688,
+    "modinfo": [
+      "license=GPL",
+      "vermagic=4.14.186-perf-g30fa96c92-dirty SMP preempt mod_unload modversions aarch64",
+      "name=suvhwvwrtnb",
+      "depends="
+    ],
+    "versions_bytes": 0,
+    "needed_bytes": 504688
+  },
+  {
+    "entry": "ShadowX-RT_Driver/4.14.186c.sh",
+    "elf_offset": 1610,
+    "bytes": 505872,
+    "modinfo": [
+      "license=GPL",
+      "vermagic=4.14.186-g2af31af37-dirty SMP preempt mod_unload modversions aarch64",
+      "name=suvhwvwrtnb",
+      "depends=",
+      "srcversion=482F07DA4924E9B501AC925"
+    ],
+    "versions_bytes": 0,
+    "needed_bytes": 505872
+  }
+]

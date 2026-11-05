@@ -1,0 +1,61 @@
+name: Genuine 4.14.186 full source rebuild v2
+on:
+  push:
+    branches: [experimental/begonia-186-rebuild-v2]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  rebuild:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - name: Dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y bc bison build-essential flex libssl-dev libelf-dev gcc-aarch64-linux-gnu gcc-arm-linux-gnueabi python3 device-tree-compiler
+      - name: Pinned 4.14.186 source and compiler
+        run: |
+          git clone --filter=blob:none --no-checkout https://github.com/muqeetdag/begonia_kernel_dev kernel
+          git -C kernel checkout 777ef5dfc3c93ae5e8f004bec4285230295760b5
+          git clone --depth=1 https://github.com/kdrag0n/proton-clang clang
+          mkdir artifacts
+          git -C kernel rev-parse HEAD > artifacts/source-commit.txt
+          git -C clang rev-parse HEAD > artifacts/compiler-commit.txt
+      - name: Device guard and logging config
+        run: |
+          set -euo pipefail
+          export PATH="$GITHUB_WORKSPACE/clang/bin:$PATH"
+          export LOCALVERSION=""
+          cd kernel
+          test "$(sed -n 's/^SUBLEVEL = //p' Makefile)" = 186
+          test ! -f drivers/misc/driver_loader_builtin.c
+          python3 ../audit/rebuild_prepare.py
+          make O=out ARCH=arm64 CC=clang CLANG_TRIPLE=aarch64-linux-gnu- CROSS_COMPILE=aarch64-linux-gnu- CROSS_COMPILE_ARM32=arm-linux-gnueabi- begonia_user_defconfig
+          scripts/config --file out/.config --set-str LOCALVERSION '-begonia-rebuild-v2' --disable LOCALVERSION_AUTO --disable KSU --enable KALLSYMS --enable KALLSYMS_ALL --enable KPROBES --enable KPROBE_EVENTS --enable KRETPROBES --enable OVERLAY_FS --enable OVERLAY_FS_REDIRECT_DIR --enable OVERLAY_FS_INDEX --enable MODULES --enable MODVERSIONS --disable MODULE_FORCE_LOAD --enable F2FS_FS --enable F2FS_FS_XATTR --enable F2FS_FS_POSIX_ACL --enable F2FS_FS_SECURITY --enable F2FS_FS_ENCRYPTION --enable PSTORE --enable PSTORE_RAM --enable PSTORE_CONSOLE --enable PRINTK --enable PRINTK_TIME --enable CC_STACKPROTECTOR_STRONG --set-val PANIC_TIMEOUT 5
+          make O=out ARCH=arm64 CC=clang CLANG_TRIPLE=aarch64-linux-gnu- CROSS_COMPILE=aarch64-linux-gnu- CROSS_COMPILE_ARM32=arm-linux-gnueabi- olddefconfig
+          grep -qx 'CONFIG_F2FS_FS=y' out/.config
+          grep -qx 'CONFIG_MODVERSIONS=y' out/.config
+          grep -qx 'CONFIG_CC_STACKPROTECTOR_STRONG=y' out/.config
+          cp out/.config ../artifacts/kernel.config
+          git diff > ../artifacts/source.patch
+          printf '%s\n' 'EXPERIMENTAL SOURCE REBUILD. Boot/root/RT runtime UNVERIFIED. No KernelPatch root payload and no RT module integrated. UART guard addresses a historical trace, not a proven explanation of current early restart. Do not force-load driver modules.' > ../artifacts/STATUS.txt
+      - name: Full kernel and source-matched DTB compilation
+        run: |
+          set -euo pipefail
+          export PATH="$GITHUB_WORKSPACE/clang/bin:$PATH"
+          export LOCALVERSION=""
+          make -C kernel O=out ARCH=arm64 CC=clang CLANG_TRIPLE=aarch64-linux-gnu- CROSS_COMPILE=aarch64-linux-gnu- CROSS_COMPILE_ARM32=arm-linux-gnueabi- KCFLAGS=-fno-builtin-sprintf -j"$(nproc)" Image.gz dtbs 2>&1 | tee artifacts/build.log
+          cp kernel/out/arch/arm64/boot/Image.gz artifacts/
+          cp kernel/out/Module.symvers artifacts/
+          mkdir artifacts/source-dtbs
+          find kernel/out/arch/arm64/boot/dts -name '*6785*.dtb' -exec cp {} artifacts/source-dtbs/ \;
+          test -s artifacts/source-dtbs/mt6785.dtb
+          sha256sum artifacts/Image.gz artifacts/source-dtbs/*.dtb > artifacts/SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: begonia-186-full-rebuild-v2-UNTESTED
+          path: artifacts/
+          retention-days: 7
