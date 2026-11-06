@@ -1,7 +1,7 @@
 name: Genuine 4.14.186 full source rebuild v2
 on:
   push:
-    branches: [experimental/begonia-186-rebuild-v2]
+    branches: [experimental/begonia-186-rebuild-v3]
   workflow_dispatch:
 permissions:
   contents: read
@@ -33,7 +33,7 @@ jobs:
           test ! -f drivers/misc/driver_loader_builtin.c
           python3 ../audit/rebuild_prepare.py
           make O=out ARCH=arm64 CC=clang CLANG_TRIPLE=aarch64-linux-gnu- CROSS_COMPILE=aarch64-linux-gnu- CROSS_COMPILE_ARM32=arm-linux-gnueabi- begonia_user_defconfig
-          scripts/config --file out/.config --set-str LOCALVERSION '-begonia-rebuild-v2' --disable LOCALVERSION_AUTO --disable KSU --enable KALLSYMS --enable KALLSYMS_ALL --enable KPROBES --enable KPROBE_EVENTS --enable KRETPROBES --enable OVERLAY_FS --enable OVERLAY_FS_REDIRECT_DIR --enable OVERLAY_FS_INDEX --enable MODULES --enable MODVERSIONS --disable MODULE_FORCE_LOAD --enable F2FS_FS --enable F2FS_FS_XATTR --enable F2FS_FS_POSIX_ACL --enable F2FS_FS_SECURITY --enable F2FS_FS_ENCRYPTION --enable PSTORE --enable PSTORE_RAM --enable PSTORE_CONSOLE --enable PRINTK --enable PRINTK_TIME --enable CC_STACKPROTECTOR_STRONG --set-val PANIC_TIMEOUT 5
+          scripts/config --file out/.config --set-str LOCALVERSION '-begonia-rebuild-v3' --disable LOCALVERSION_AUTO --disable KSU --enable KALLSYMS --enable KALLSYMS_ALL --enable KPROBES --enable KPROBE_EVENTS --enable KRETPROBES --enable OVERLAY_FS --enable OVERLAY_FS_REDIRECT_DIR --enable OVERLAY_FS_INDEX --enable MODULES --enable MODVERSIONS --disable MODULE_FORCE_LOAD --enable F2FS_FS --enable F2FS_FS_XATTR --enable F2FS_FS_POSIX_ACL --enable F2FS_FS_SECURITY --enable F2FS_FS_ENCRYPTION --enable PSTORE --enable PSTORE_RAM --enable PSTORE_CONSOLE --enable PRINTK --enable PRINTK_TIME --enable CC_STACKPROTECTOR_STRONG --set-val PANIC_TIMEOUT 5
           make O=out ARCH=arm64 CC=clang CLANG_TRIPLE=aarch64-linux-gnu- CROSS_COMPILE=aarch64-linux-gnu- CROSS_COMPILE_ARM32=arm-linux-gnueabi- olddefconfig
           grep -qx 'CONFIG_F2FS_FS=y' out/.config
           grep -qx 'CONFIG_MODVERSIONS=y' out/.config
@@ -56,6 +56,6 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: begonia-186-full-rebuild-v2-UNTESTED
+          name: begonia-186-full-rebuild-v3-UNTESTED
           path: artifacts/
           retention-days: 7
