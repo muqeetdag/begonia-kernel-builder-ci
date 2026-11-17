@@ -1,0 +1,104 @@
+{
+  "description": "Free LLM provider catalog from the screenshots (awesome-free-llm-apis / freellm.net). Most offer an OpenAI-compatible endpoint — just change base_url + api_key. Get keys free at each key_page. Never commit real keys; use .env (see config/.env.example).",
+  "providers": {
+    "cohere": {
+      "name": "Cohere",
+      "base_url": "https://api.cohere.ai/compatibility/v1",
+      "key_page": "https://dashboard.cohere.com/api-keys",
+      "env_var": "COHERE_API_KEY",
+      "default_model": "command-r",
+      "free_models": ["command-r", "command-r+", "command-a", "command-r7b"],
+      "notes": "Trial key, 1,000 calls/mo, non-commercial use only."
+    },
+    "huggingface": {
+      "name": "Hugging Face",
+      "base_url": "https://router.huggingface.co/v1",
+      "key_page": "https://huggingface.co/settings/tokens",
+      "env_var": "HF_TOKEN",
+      "default_model": "meta-llama/Llama-3.1-8B-Instruct",
+      "free_models": ["meta-llama/Llama-3.1-8B-Instruct", "Qwen/Qwen2.5-7B-Instruct"],
+      "notes": "Free inference API for many open models."
+    },
+    "cloudflare": {
+      "name": "Cloudflare Workers AI",
+      "base_url": "https://api.cloudflare.com/client/v4/accounts/YOUR_ACCOUNT_ID/ai/v1",
+      "key_page": "https://dash.cloudflare.com",
+      "env_var": "CLOUDFLARE_API_KEY",
+      "default_model": "@cf/meta/llama-3.1-8b-instruct",
+      "free_models": ["@cf/meta/llama-3.1-8b-instruct", "@cf/mistral/mistral-7b-instruct-v0.1"],
+      "notes": "Free neurons/day. Replace YOUR_ACCOUNT_ID in base_url."
+    },
+    "xai": {
+      "name": "xAI (Grok)",
+      "base_url": "https://api.x.ai/v1",
+      "key_page": "https://console.x.ai",
+      "env_var": "XAI_API_KEY",
+      "default_model": "grok-2-latest",
+      "free_models": ["grok-2-latest", "grok-beta"],
+      "notes": "Free credits on signup."
+    },
+    "deepseek": {
+      "name": "DeepSeek",
+      "base_url": "https://api.deepseek.com/v1",
+      "key_page": "https://platform.deepseek.com",
+      "env_var": "DEEPSEEK_API_KEY",
+      "default_model": "deepseek-chat",
+      "free_models": ["deepseek-chat", "deepseek-reasoner"],
+      "notes": "Free balance on signup; very cheap after."
+    },
+    "openrouter": {
+      "name": "OpenRouter",
+      "base_url": "https://openrouter.ai/api/v1",
+      "key_page": "https://openrouter.ai/keys",
+      "env_var": "OPENROUTER_API_KEY",
+      "default_model": "meta-llama/llama-3.1-8b-instruct:free",
+      "free_models": ["meta-llama/llama-3.1-8b-instruct:free", "google/gemini-2.0-flash-exp:free"],
+      "notes": "Free models carry the :free suffix."
+    },
+    "alibaba": {
+      "name": "Alibaba Cloud (Qwen)",
+      "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+      "key_page": "https://bailian.console.aliyun.com",
+      "env_var": "DASHSCOPE_API_KEY",
+      "default_model": "qwen-plus",
+      "free_models": ["qwen-plus", "qwen-turbo", "qwen-max"],
+      "notes": "Free trial models via Bailian."
+    },
+    "gemini": {
+      "name": "Google Gemini",
+      "base_url": "https://generativelanguage.googleapis.com/v1beta/openai/",
+      "key_page": "https://aistudio.google.com/app/apikey",
+      "env_var": "GEMINI_API_KEY",
+      "default_model": "gemini-2.0-flash",
+      "free_models": ["gemini-2.0-flash", "gemini-1.5-flash"],
+      "notes": "Free tier, no credit card. Free-tier prompts may train Google products."
+    },
+    "groq": {
+      "name": "Groq",
+      "base_url": "https://api.groq.com/openai/v1",
+      "key_page": "https://console.groq.com/keys",
+      "env_var": "GROQ_API_KEY",
+      "default_model": "llama-3.1-8b-instant",
+      "free_models": ["llama-3.1-8b-instant", "llama-3.3-70b-versatile"],
+      "notes": "Generous free tier, very fast."
+    },
+    "cerebras": {
+      "name": "Cerebras",
+      "base_url": "https://api.cerebras.ai/v1",
+      "key_page": "https://cloud.cerebras.ai",
+      "env_var": "CEREBRAS_API_KEY",
+      "default_model": "llama-3.1-8b",
+      "free_models": ["llama-3.1-8b", "llama-3.3-70b"],
+      "notes": "Free tier, fast inference."
+    },
+    "freellmapi": {
+      "name": "FreeLLMAPI gateway (local)",
+      "base_url": "http://localhost:3001/v1",
+      "key_page": "http://localhost:3001 (after install)",
+      "env_var": "FREELLMAPI_API_KEY",
+      "default_model": "auto",
+      "free_models": ["auto", "fusion"],
+      "notes": "87 providers behind one endpoint. Install: curl -fsSL https://freellmapi.co/install.sh | bash"
+    }
+  }
+}
