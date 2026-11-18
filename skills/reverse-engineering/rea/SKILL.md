@@ -115,6 +115,17 @@ rea inspect-binary-layout <p>   # ELF/Mach-O layout, no execution
 rea inspect-native-api <p> <address>
 rea annotate-native-function <p> <procedure>
 rea analyze <path>              # deep analysis
+rea decompile <path> [address]  # read one part of an app as code
+```
+
+⚠️ **Path is a positional argument — there is no `--target` flag.**
+Verified on 6.7.0:
+
+```bash
+rea analyze --target app.apk   # ✗ "Unknown flag: --target"
+rea analyze app.apk            # ✓
+rea decompile --target x       # ✗
+rea decompile x                # ✓
 ```
 
 Deep analysis (`analyze`, `inspect`) needs one *deep* provider —

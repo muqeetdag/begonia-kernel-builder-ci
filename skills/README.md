@@ -19,6 +19,8 @@ All skills from the Instagram screenshots, installed as agent skills
 | 12 | [freebuff](free-llm/freebuff/SKILL.md) | @matty.buff "sauce" reel | Free coding agent (CodebuffAI/freebuff) |
 | 13 | [modal](free-llm/modal/SKILL.md) | @ezsnippet reel ($30 free) | Modal.com — free AI infra / GPU endpoints |
 | 14 | [public-apis](free-llm/public-apis/SKILL.md) | @its_hunter_275 comment | public-apis/public-apis — collective free API list |
+| 16 | [free-claude-code](free-llm/free-claude-code/SKILL.md) | codeaashu/free-claude-code (185★ reel) | Local proxy: run Claude Code free via NVIDIA NIM / OpenRouter / DeepSeek / local |
+| 17 | [awesome-web-hosting](free-llm/awesome-web-hosting/SKILL.md) | iSoumyaDey (272★ reel) | 100+ free cloud hosting platforms compared |
 | 15 | [begonia-kernel](begonia-kernel/SKILL.md) | this repo | Project skill: RE the Begonia `Image.gz-dtb` + `/dev/BYNb` driver loader |
 
 ## Install everything
@@ -80,7 +82,9 @@ skills/
 │   ├── ecc/SKILL.md
 │   ├── freebuff/SKILL.md
 │   ├── modal/SKILL.md
-│   └── public-apis/SKILL.md
+│   ├── public-apis/SKILL.md
+│   ├── free-claude-code/SKILL.md
+│   └── awesome-web-hosting/SKILL.md
 └── begonia-kernel/
     └── SKILL.md               ← RE workflow for this repo's kernel image
 scripts/
