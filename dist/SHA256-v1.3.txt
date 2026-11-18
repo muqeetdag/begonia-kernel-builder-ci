@@ -1,0 +1,7 @@
+BizBuddy-v1.3-signed.apk
+sha256: b9354976ceb9efeb3eba833e1ab0897d851297c8c26602228df534f7e9b9c2ee
+size:   136245 bytes
+package: com.bizbuddy.app  versionName 1.0  versionCode 1
+minSdk 21 / targetSdk 34   signature: v1 + v2 + v3 (CN=BizBuddy)
+fix: startup crash — setWebViewClient called on the Activity, and a v0 write
+     inside a .locals 0 constructor that clobbered `this`
