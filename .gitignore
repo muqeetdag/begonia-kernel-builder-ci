@@ -44,3 +44,7 @@ androguard.log
 
 # Local app scraps
 *.log
+
+# Build artifacts (APKs are distributed via Drive, not git)
+dist/*.apk
+dist/*.p12
