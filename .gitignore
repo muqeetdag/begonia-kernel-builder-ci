@@ -37,3 +37,7 @@ analysis/
 *.apks
 *.xapk
 *.aab
+
+# androguard run artifacts
+androguard.db
+androguard.log
