@@ -89,7 +89,9 @@ scripts/
 └── free_llm.py                ← call any free LLM provider (OpenAI-compatible)
 config/
 ├── free-llm-providers.json    ← provider catalog from the screenshots
-└── .env.example               ← copy to .env, paste your free API keys
+└── .env.example               ← copy to .env, paste keys (LLM + Telegram)
+scripts/telegram_store.py      ← store notes/artifacts in a Telegram bot chat
+scripts/tests/mock_telegram_api.py ← offline mock Bot API for testing
 ```
 
 > ⚠️ Ethics (from the notes): reverse engineering only with proper
