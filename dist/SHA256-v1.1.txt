@@ -1,0 +1,6 @@
+BizBuddy-v1.1-signed.apk
+sha256: 434d9590bc35829e527c0f125d06d628a362b9c9e4b6074f63a983744aea77f1
+size:   132101 bytes
+built:  2026-11-17
+package: com.bizbuddy.app  versionName 1.0  versionCode 1
+minSdk 21 / targetSdk 34   signature: v1 + v2 + v3 (CN=BizBuddy)
