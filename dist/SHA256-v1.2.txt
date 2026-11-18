@@ -1,0 +1,6 @@
+BizBuddy-v1.2-signed.apk
+sha256: b91d44ff0933e64e3a55f62717539d2dafcfd03ea696949e2b2845b58a663aaf
+size:   132149 bytes
+package: com.bizbuddy.app  versionName 1.0  versionCode 1
+minSdk 21 / targetSdk 34   signature: v1 + v2 + v3 (CN=BizBuddy)
+fix: zipalign — resources.arsc and all stored entries 4-byte aligned
