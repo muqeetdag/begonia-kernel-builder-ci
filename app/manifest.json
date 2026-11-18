@@ -1,0 +1,16 @@
+{
+  "name": "BizBuddy — Spatial GST OS",
+  "short_name": "BizBuddy",
+  "description": "Smart business & GST operating system for small businesses.",
+  "start_url": "./bizbuddy.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0a0a0c",
+  "theme_color": "#F97316",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

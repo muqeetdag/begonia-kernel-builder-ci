@@ -41,3 +41,6 @@ analysis/
 # androguard run artifacts
 androguard.db
 androguard.log
+
+# Local app scraps
+*.log
