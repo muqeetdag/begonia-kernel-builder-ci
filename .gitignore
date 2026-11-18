@@ -28,3 +28,12 @@ node_modules/
 # Workflow kept locally: the GitHub App token used by this session has no
 # `workflows` permission, so adding it needs a manual commit/push.
 .github/workflows/install-skills.yml
+
+# Files staged by connector downloads (Drive/Dropbox) and APK analysis output
+google_drive/
+dropbox/
+analysis/
+*.apk
+*.apks
+*.xapk
+*.aab
