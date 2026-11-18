@@ -10,6 +10,9 @@ an AnyKernel3 flashable zip.
 - Output: `Begonia-4.14.186-driver-loader-DRKMUQEETT.zip`
 - Workflow: `.github/workflows/build_kernel.yml` (see `build.sh` for local)
 
+Agents working in this repo: see [`AGENT.md`](AGENT.md) for the
+working agreement and verified environment constraints.
+
 ## ✨ Skills (all installed)
 
 Every skill from the screenshots is installed as an agent skill
