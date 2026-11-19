@@ -1116,13 +1116,22 @@
     try { seen = sessionStorage.getItem('bb_splash_seen') === '1'; } catch (e) {}
     // Always play on first load of the session; skip replay on back-nav.
     var hold = seen ? 250 : 2100;
+    var dismissed = false;
     function dismiss() {
-      el.classList.add('bb-done');
+      if (dismissed) return;
+      dismissed = true;
+      try { el.classList.add('bb-done'); } catch (e) {}
       try { sessionStorage.setItem('bb_splash_seen', '1'); } catch (e) {}
-      setTimeout(function () { el.remove(); }, 700);
+      setTimeout(function () {
+        try { el.remove(); } catch (e) {}
+        try { el.style.display = 'none'; } catch (e) {}
+      }, 700);
     }
     setTimeout(dismiss, hold);
+    // hard fail-safe: whatever happens above, never block the app for more than 4s
+    setTimeout(dismiss, 4000);
     el.addEventListener('click', dismiss);
+    window.addEventListener('error', dismiss, { once: true });
   })();
 </script>
 <!-- ===== /boot splash ===== -->
@@ -3869,7 +3878,8 @@
   </script>
 <script>
   // PWA: register the offline shell (skipped on file:// where SW is unsupported)
-  if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+  if ('serviceWorker' in navigator && location.protocol === 'https:'
+      && !location.host.endsWith('androidplatform.net')) {
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('sw.js').catch(() => {});
     });

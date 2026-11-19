@@ -1,0 +1,5 @@
+BizBuddy-v1.4-signed.apk
+sha256: ea5b749a19fada9d8c70f5c28ab9648c9cce03df8f43ec9b989fb4dc990dd5ae
+size:   198085 bytes
+assets: 7 files (index.html, logo.svg, logo.png, icon-192.png, icon-512.png, manifest.json, sw.js)
+fix: all PWA files now shipped (was index.html only -> broken image, blank screen)
